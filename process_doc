@@ -1,0 +1,73 @@
+#!/usr/bin/bash -x
+
+# while getopts "t:a:f:" opt; do
+#     echo "Option: " ${opt} " " ${OPTARG}
+# done
+
+while getopts "t:a:y:f:" opt; do
+    case "${opt}" in
+        t ) TITLE=${OPTARG};;
+        a ) AUTHOR=${OPTARG};;
+        y ) YEAR=${OPTARG};;
+        f ) DOC=${OPTARG};;
+    esac
+done 
+
+##Add trailing page
+PAGETEX="\documentclass{article}
+
+\usepackage[colorlinks]{hyperref}
+ \hypersetup{urlcolor=[rgb]{0.258,0.545,0.792}}
+
+\usepackage[default]{opensans}
+
+\def\fbc{\fontseries{bc}\selectfont}
+
+\setlength{\parindent}{0em}
+
+\begin{document}
+\thispagestyle{empty}
+
+{\fontseries{lc}\fontsize{20pt}{26pt}\selectfont
+{\fbc Title:} \\\\
+${TITLE} \\\\
+{\fbc Author:} \\\\
+${AUTHOR} \\\\
+{\fbc Date:} \\\\
+${YEAR}\par
+}
+
+\vspace{1.5cm}
+
+\fontsize{16pt}{20pt}\selectfont
+Downloaded from the Irish Left Archive. \\\\
+Visit \href{https://www.clririshleftarchive.org}{www.clririshleftarchive.org} \\\\
+
+\vspace{1.5cm}
+
+\fontsize{12pt}{16pt}\selectfont
+\emph{The Irish Left Archive is provided as a non-commercial historical resource, open to all, and has reproduced this document as an accessible digital reference. Copyright remains with its original authors. If used on other sites, we would appreciate a link back and reference to the Irish Left Archive, in addition to the original creators. For re-publication, commercial, or other uses, please contact the original owners. If documents provided to the Irish Left Archive have been created for or added to other online archives, please inform us so sources can be credited.}
+
+\end{document} 
+"
+
+echo "${PAGETEX}" > tex_tmp.tex
+
+pdflatex -interaction=nonstopmode tex_tmp.tex
+
+mv ${DOC} pdf_tmp.pdf
+#pdfunite pdf_tmp.pdf tex_tmp.pdf ${DOC}
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
+
+rm pdf_tmp.pdf
+rm tex_tmp.*
+
+exiftool -Title="${TITLE}" -Author="${AUTHOR}" ${DOC}
+
+rm ${DOC}_original
+
+gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
+pdfimages -j page1.pdf i
+
+convert i-000.jpg -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
+rm page1.pdf i-000.jpg
