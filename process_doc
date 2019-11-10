@@ -55,14 +55,12 @@ mv ${DOC} pdf_tmp.pdf
 #pdfunite pdf_tmp.pdf tex_tmp.pdf ${DOC}
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
 
-rm pdf_tmp.pdf tex_tmp.*
-
 exiftool -Title="${TITLE}" -Author="${AUTHOR}" ${DOC}
-
-rm ${DOC}_original
 
 gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
 pdfimages -j page1.pdf i
 
 convert i-000.jpg -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
-rm page1.pdf i-000.jpg
+
+#Cleanup
+rm page1.pdf i-000.jpg pdf_tmp.pdf tex_tmp.* ${DOC}_original
