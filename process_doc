@@ -1,9 +1,5 @@
 #!/usr/bin/bash -x
 
-# while getopts "t:a:f:" opt; do
-#     echo "Option: " ${opt} " " ${OPTARG}
-# done
-
 while getopts "t:a:y:f:" opt; do
     case "${opt}" in
         t ) TITLE=${OPTARG};;
@@ -59,8 +55,7 @@ mv ${DOC} pdf_tmp.pdf
 #pdfunite pdf_tmp.pdf tex_tmp.pdf ${DOC}
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
 
-rm pdf_tmp.pdf
-rm tex_tmp.*
+rm pdf_tmp.pdf tex_tmp.*
 
 exiftool -Title="${TITLE}" -Author="${AUTHOR}" ${DOC}
 
