@@ -1,4 +1,4 @@
-#!/usr/bin/bash -x
+#!/usr/bin/bash
 
 while getopts "t:a:y:f:" opt; do
     case "${opt}" in
@@ -8,6 +8,18 @@ while getopts "t:a:y:f:" opt; do
         f ) DOC=${OPTARG};;
     esac
 done 
+
+
+DATATEX="{\fbc Title:} ${TITLE} \\\\"
+
+if [ ! -z "$AUTHOR" ]
+    then
+    DATATEX="{$DATATEX}
+        {\fbc Author:} ${AUTHOR} \\\\"
+fi
+
+DATATEX="{$DATATEX}
+        {\fbc Date:} ${YEAR}\par"
 
 ##Add trailing page
 PAGETEX="\documentclass{article}
@@ -25,12 +37,7 @@ PAGETEX="\documentclass{article}
 \thispagestyle{empty}
 
 {\fontseries{lc}\fontsize{20pt}{26pt}\selectfont
-{\fbc Title:} \\\\
-${TITLE} \\\\
-{\fbc Author:} \\\\
-${AUTHOR} \\\\
-{\fbc Date:} \\\\
-${YEAR}\par
+${DATATEX}
 }
 
 \vspace{1.5cm}
