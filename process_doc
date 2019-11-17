@@ -56,7 +56,7 @@ Visit \href{https://www.clririshleftarchive.org}{www.clririshleftarchive.org} \\
 
 echo "${PAGETEX}" > tex_tmp.tex
 
-pdflatex -interaction=nonstopmode tex_tmp.tex
+pdflatex -interaction=batchmode tex_tmp.tex
 
 mv ${DOC} pdf_tmp.pdf
 #pdfunite pdf_tmp.pdf tex_tmp.pdf ${DOC}
@@ -67,7 +67,15 @@ exiftool -Title="${TITLE}" -Author="${AUTHOR}" ${DOC}
 gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
 pdfimages -j page1.pdf i
 
-convert i-000.jpg -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
+#pdfimages can still output PBM, if the image is not DCT format (see https://www.xpdfreader.com/pdfimages-man.html)
+FILE="i-000.pbm"
+if [[ -f "$FILE" ]]; then
+    img=$FILE
+else
+    img="i-000.jpg"
+fi
+
+convert $img -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
 
 #Cleanup
-rm page1.pdf i-000.jpg pdf_tmp.pdf tex_tmp.* ${DOC}_original
+rm page1.pdf i-000.* pdf_tmp.pdf tex_tmp.* ${DOC}_original
