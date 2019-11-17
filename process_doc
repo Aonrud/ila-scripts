@@ -1,8 +1,9 @@
 #!/usr/bin/bash
 
-while getopts "t:a:y:f:" opt; do
+while getopts "t:o:a:y:f:" opt; do
     case "${opt}" in
         t ) TITLE=${OPTARG};;
+        o ) ORG=${OPTARG};;
         a ) AUTHOR=${OPTARG};;
         y ) YEAR=${OPTARG};;
         f ) DOC=${OPTARG};;
@@ -12,8 +13,12 @@ done
 
 DATATEX="{\fbc Title:} ${TITLE} \\\\"
 
-if [ ! -z "$AUTHOR" ]
-    then
+if [ ! -z "$ORG" ]; then
+    DATATEX="{$DATATEX}
+        {\fbc Organisation:} ${ORG} \\\\"
+fi
+
+if [ ! -z "$AUTHOR" ]; then
     DATATEX="{$DATATEX}
         {\fbc Author:} ${AUTHOR} \\\\"
 fi
@@ -62,7 +67,14 @@ mv ${DOC} pdf_tmp.pdf
 #pdfunite pdf_tmp.pdf tex_tmp.pdf ${DOC}
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
 
-exiftool -Title="${TITLE}" -Author="${AUTHOR}" ${DOC}
+#Add org as author, if no author specified.
+if [ -z "$AUTHOR" ]; then
+    M_AUTH=${ORG}
+else
+    M_AUTH=${AUTHOR}
+fi
+
+exiftool -Title="${TITLE}" -Author="${M_AUTH}" ${DOC}
 
 gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
 pdfimages -j page1.pdf i
