@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#THis is blunt - it will try to strip field delimiter quotes.
+#Using ; separated file reduces chance of delimiters in this case.
+
+INPUT=$1
+OLDIFS=$IFS
+IFS=';'
+[ ! -f $INPUT ] && { echo "$INPUT file not found"; exit 99; }
+while read title file year org author
+do
+    for i in $title $file $year $org $author; do
+        temp="${i%\"}"
+        temp="${temp#\"}"
+    done
+	printf "Processing $file\n"
+	./process_doc -t "$title" -o "$org" -a "$author" -y "$year" -f "$file"
+done < $INPUT
+IFS=$OLDIFS 
