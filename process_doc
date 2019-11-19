@@ -77,17 +77,7 @@ fi
 exiftool -Title="${TITLE}" -Author="${M_AUTH}" ${DOC}
 
 gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
-pdfimages -j page1.pdf i
-
-#pdfimages can still output PBM, if the image is not DCT format (see https://www.xpdfreader.com/pdfimages-man.html)
-FILE="i-000.pbm"
-if [[ -f "$FILE" ]]; then
-    img=$FILE
-else
-    img="i-000.jpg"
-fi
-
-convert $img -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
+convert page1.pdf -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
 
 #Cleanup
-rm page1.pdf i-000.* pdf_tmp.pdf tex_tmp.* ${DOC}_original
+rm page1.* pdf_tmp.pdf tex_tmp.* ${DOC}_original
