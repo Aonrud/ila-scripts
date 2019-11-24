@@ -64,7 +64,6 @@ echo "${PAGETEX}" > tex_tmp.tex
 pdflatex -interaction=batchmode tex_tmp.tex
 
 mv ${DOC} pdf_tmp.pdf
-#pdfunite pdf_tmp.pdf tex_tmp.pdf ${DOC}
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
 
 #Add org as author, if no author specified.
