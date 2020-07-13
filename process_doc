@@ -1,15 +1,58 @@
 #!/usr/bin/bash
 
-while getopts "t:o:a:y:f:" opt; do
-    case "${opt}" in
-        t ) TITLE=${OPTARG};;
-        o ) ORG=${OPTARG};;
-        a ) AUTHOR=${OPTARG};;
-        y ) YEAR=${OPTARG};;
-        f ) DOC=${OPTARG};;
-    esac
-done 
+print_usage() { echo "Usage: $(basename $0) -t TITLE -y YEAR [-o ORGANISATION] [-a AUTHOR] -f PDF_FILE"; }
 
+while getopts "t:o:a:y:f:" opt; do
+	
+	if [[ $OPTARG = -* ]]; then
+		echo "Check argument syntax. Possible missing argument for option ${opt}.";
+		echo "Got \"${OPTARG}\" for ${opt}.";
+		exit 1;
+	fi
+
+    case "${opt}" in
+        t)	TITLE=${OPTARG};
+			;;
+        o)	ORG=${OPTARG};
+			;;
+        a)	AUTHOR=${OPTARG};
+			;;
+        y)	YEAR=${OPTARG};
+			;;
+        f)	DOC=${OPTARG};
+			;;
+		\?) print_usage;
+            exit 1
+            ;;
+		:)	echo "Missing option argument for -$OPTARG";
+            exit 1
+            ;;
+    esac
+done
+
+if ((OPTIND == 1))
+then
+    echo "No options specified.";
+	print_usage;
+	exit 1;
+fi
+
+shift $((OPTIND -1))
+
+#These parameters are required, so we exit if they aren't set
+if [ -z "$TITLE" ] || [ -z "$YEAR" ] || [ -z "$DOC" ]; then
+	echo "Required options missing.";
+	print_usage;
+	exit 1;
+fi
+
+if [ ! -f $DOC ]; then
+	echo "Invalid file provided. Check that -f option refers to a valid file.";
+	exit 1;
+elif [[ ! $(file --mime-type -b "$DOC") == "application/pdf" ]]; then
+	echo "File $DOC is not a PDF file.";
+	exit 1;
+fi
 
 DATATEX="{\fbc Title:} ${TITLE} \\\\"
 
@@ -64,7 +107,7 @@ echo "${PAGETEX}" > tex_tmp.tex
 pdflatex -interaction=batchmode tex_tmp.tex
 
 mv ${DOC} pdf_tmp.pdf
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/default -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
 
 #Add org as author, if no author specified.
 if [ -z "$AUTHOR" ]; then
