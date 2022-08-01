@@ -119,7 +119,15 @@ fi
 exiftool -Title="${TITLE}" -Author="${M_AUTH}" ${DOC}
 
 gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
-convert page1.pdf -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 1600x "${DOC%%.*}".jpeg
+convert page1.pdf -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 2000x "${DOC%%.*}".jpeg
+
+#For social media sharing, the image is automatically converted to 1.91:1 ratio by the site.
+#Because of limitations in the generator, this can't be then scaled afterwards,
+#so restrict the size here to keep that image under 4096px width.
+HEIGHT=$(identify -format "%h" "${DOC%%.*}".jpeg);
+if [ "$HEIGHT" -gt 2140 ]; then
+	mogrify -resize x2140 "${DOC%%.*}".jpeg
+fi
 
 #Cleanup
 rm page1.* pdf_tmp.pdf tex_tmp.* ${DOC}_original
