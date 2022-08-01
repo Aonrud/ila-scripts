@@ -54,7 +54,7 @@ elif [[ ! $(file --mime-type -b "$DOC") == "application/pdf" ]]; then
 	exit 1;
 fi
 
-DATATEX="{\fbc Title:} ${TITLE} \\\\"
+DATATEX="{\fbc Title:} ${TITLE//&/\\&} \\\\"	#Substitution of & for \& for latex
 
 if [ ! -z "$ORG" ]; then
     DATATEX="{$DATATEX}
