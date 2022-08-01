@@ -1,0 +1,49 @@
+#!/bin/bash
+
+###############################
+# Settings and directories
+###############################
+SITE=leftarchive.ie
+
+ROOT=/var/www/leftarchive.ie
+BACKUP_DIR=/mnt/ila_backup/leftarchive.ie
+CONTENTS_DIR=$BACKUP_DIR/site_contents
+SITE_DIR=$BACKUP_DIR/$(date -I)_$SITE
+ROOT=/var/www/leftarchive.ie
+
+DB=leftarchive
+CONTENTS=( "/workspace/documents" "/workspace/images" "/workspace/submissions" "/workspace/podcast" )
+EXCLUDE=( "${CONTENTS[@]}" "/workspace/.git" )
+
+###############################
+# Backup the site files (exluding EXCLUDE dirs) and database
+###############################
+
+mkdir $SITE_DIR
+
+mysqldump --lock-all-tables $DB>$SITE_DIR/$DB.sql
+
+tar $(for i in "${EXCLUDE[@]}"; do printf -- "--exclude=%s " $ROOT$i; done) -caf $SITE_DIR/$SITE.tar.xz $ROOT
+
+#Add a readme listing excluded dirs and contents.
+README=$SITE_DIR/README.md
+touch $README
+printf "Created: $(date)\n"  >> $README
+printf "Database: $DB.sql\n" >> $README
+printf "Website files: $SITE.tar.xz\n" >> $README
+printf "Excluded folders:\n\n" >> $README
+for i in "${EXCLUDE[@]}"
+do
+        printf "$i\n" >> $README
+done
+
+###############################
+# Backup the contents folders
+###############################
+
+for i in "${CONTENTS[@]}"
+do
+        cp -au $ROOT$i $CONTENTS_DIR/
+done
+
+echo $(date) > $CONTENTS_DIR/last_updated
