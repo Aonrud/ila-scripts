@@ -58,7 +58,7 @@ DATATEX="{\fbc Title:} ${TITLE//&/\\&} \\\\"	#Substitution of & for \& for latex
 
 if [ ! -z "$ORG" ]; then
     DATATEX="{$DATATEX}
-        {\fbc Organisation:} ${ORG} \\\\"
+        {\fbc Organisation:} ${ORG//&/\\&} \\\\"
 fi
 
 if [ ! -z "$AUTHOR" ]; then
