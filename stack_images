@@ -1,0 +1,13 @@
+#!/bin/sh
+#Takes all jpeg images in the current directory and combines them into an image of 1146x600px, with each image overlapping on the horizontal axis.
+
+files=(*.jp[e?]g)
+steps=$((${#files[@]}-1))
+last=${files[${steps}]}
+width=1146
+height=600
+diff=$((${width}-$(identify -ping -format '%w' ${last})))
+stepsize=$((${diff}/${steps}));
+ 
+mogrify -resize x${height} *.jp[e?]g
+convert -size ${width}x${height} canvas:'#333' $(for i in "${!files[@]}"; do printf -- " -page +%s+0 %s" $(($stepsize * $i)) ${files[$i]}; done) -layers merge +repage test.jpeg
