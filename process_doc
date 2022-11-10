@@ -85,11 +85,11 @@ Downloaded from: \\\\
 \href{https://www.leftarchive.ie}{leftarchive.ie} \\\\"
 fi
 
-DATATEX="{\fbc Title:} ${TITLE//&/\\&} \\\\"	#Substitution of & for \& for latex
+DATATEX="{\fbc Title:}  $(echo "$TITLE" | sed -e 's/\&/\\&/g' -e 's/\%/\\%/g') \\\\"	#Substitution of & for \& for latex
 
 if [ ! -z "$ORG" ]; then
     DATATEX="${DATATEX}
-        {\fbc Organisation:} ${ORG//&/\\&} \\\\"
+        {\fbc Organisation:} $(echo "$ORG" | sed -e 's/\&/\\&/g' -e 's/\%/\\%/g') \\\\"
 fi
 
 if [ ! -z "$AUTHOR" ]; then
