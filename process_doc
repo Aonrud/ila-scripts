@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 
-print_usage() { echo "Usage: $(basename $0) -t TITLE -y YEAR [-o ORGANISATION] [-a AUTHOR] -f PDF_FILE"; }
+print_usage() { echo "Usage: $(basename $0) -t TITLE -y YEAR [-o ORGANISATION] [-a AUTHOR] [-p 'ILA' or 'SNAPSHOTS'] -f PDF_FILE"; }
 
-while getopts "t:o:a:y:f:" opt; do
+while getopts "t:o:a:y:p:f:" opt; do
 	
 	if [[ $OPTARG = -* ]]; then
 		echo "Check argument syntax. Possible missing argument for option ${opt}.";
@@ -20,6 +20,8 @@ while getopts "t:o:a:y:f:" opt; do
         y)	YEAR=${OPTARG};
 			;;
         f)	DOC=${OPTARG};
+			;;
+		p)	PROJECT=${OPTARG};
 			;;
 		\?) print_usage;
             exit 1
@@ -54,21 +56,50 @@ elif [[ ! $(file --mime-type -b "$DOC") == "application/pdf" ]]; then
 	exit 1;
 fi
 
+# Validate the project option
+if [ ! -z "$PROJECT" ] && [[ "$PROJECT" != "ILA" ]] && [[ "$PROJECT" != "SNAPSHOTS" ]]; then
+	echo "Invalid option provided for project (-p). If specified, only 'ILA' or 'SNAPSHOTS' are valid."
+	exit 1;
+fi
+
+# Sort out the text differences for the diff. projects
+if [ -z "$PROJECT" ] || [ "$PROJECT" = "ILA" ]; then
+	PROJECT="ILA";
+	PNAME="The Irish Left Archive";
+	DLTEXT="\fontsize{16pt}{20pt}\selectfont
+Downloaded from the Irish Left Archive. \\\\
+Visit \href{https://www.leftarchive.ie}{www.leftarchive.ie} \\\\"
+fi
+
+if [ "${PROJECT}" = "SNAPSHOTS" ]; then
+	PNAME="Snapshots of Political Action";
+	DLTEXT="\fontsize{14pt}{16pt}\selectfont
+Downloaded from: \\\\
+
+\fontsize{16pt}{20pt}\selectfont
+{\bungee Snapshots of Political Action} \\\\
+{\jura A project from Irish Election Literature and the Irish Left Archive.} \\\\
+
+\fontsize{14pt}{16pt}\selectfont
+\href{https://www.irishelectionliterature.com}{irishelectionliterature.com} \\\\
+\href{https://www.leftarchive.ie}{leftarchive.ie} \\\\"
+fi
+
 DATATEX="{\fbc Title:} ${TITLE//&/\\&} \\\\"	#Substitution of & for \& for latex
 
 if [ ! -z "$ORG" ]; then
-    DATATEX="{$DATATEX}
+    DATATEX="${DATATEX}
         {\fbc Organisation:} ${ORG//&/\\&} \\\\"
 fi
 
 if [ ! -z "$AUTHOR" ]; then
-    DATATEX="{$DATATEX}
+    DATATEX="${DATATEX}
         {\fbc Author:} ${AUTHOR} \\\\"
 fi
 
-DATATEX="{$DATATEX}
+DATATEX="${DATATEX}
         {\fbc Date:} ${YEAR}\par"
-
+        
 ##Add trailing page
 PAGETEX="\documentclass{article}
 
@@ -79,8 +110,16 @@ PAGETEX="\documentclass{article}
 
 \def\fbc{\fontseries{bc}\selectfont}
 
-\setlength{\parindent}{0em}
+\setlength{\parindent}{0em}"
 
+if [ "$PROJECT" = "SNAPSHOTS" ]; then #Include fonts for Snapshots project if needed
+	PAGETEX="${PAGETEX}
+			\usepackage{fontspec}
+			\newfontfamily\bungee{Bungee}
+			\newfontfamily\jura{Jura}"
+fi
+
+PAGETEX="${PAGETEX}
 \begin{document}
 \thispagestyle{empty}
 
@@ -89,22 +128,20 @@ ${DATATEX}
 }
 
 \vspace{1.5cm}
-
-\fontsize{16pt}{20pt}\selectfont
-Downloaded from the Irish Left Archive. \\\\
-Visit \href{https://www.leftarchive.ie}{www.leftarchive.ie} \\\\
+		
+${DLTEXT}
 
 \vspace{1.5cm}
 
 \fontsize{12pt}{16pt}\selectfont
-\emph{The Irish Left Archive is provided as a non-commercial historical resource, open to all, and has reproduced this document as an accessible digital reference. Copyright remains with its original authors. If used on other sites, we would appreciate a link back and reference to the Irish Left Archive, in addition to the original creators. For re-publication, commercial, or other uses, please contact the original owners. If documents provided to the Irish Left Archive have been created for or added to other online archives, please inform us so sources can be credited.}
+\emph{${PNAME} is provided as a non-commercial historical resource, open to all, and has reproduced this document as an accessible digital reference. Copyright remains with its original authors. If used on other sites, we would appreciate a link back and reference to the Irish Left Archive, in addition to the original creators. For re-publication, commercial, or other uses, please contact the original owners. If documents provided to ${PNAME} have been created for or added to other online archives, please inform us so sources can be credited.}
 
 \end{document} 
 "
 
 echo "${PAGETEX}" > tex_tmp.tex
 
-pdflatex -interaction=batchmode tex_tmp.tex
+xelatex -interaction=batchmode tex_tmp.tex
 
 mv ${DOC} pdf_tmp.pdf
 gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/default -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
