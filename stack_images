@@ -1,13 +1,17 @@
-#!/bin/sh
-#Takes all jpeg images in the current directory and combines them into an image of 1146x600px, with each image overlapping on the horizontal axis.
-
-files=(*.jp[e?]g)
-steps=$((${#files[@]}-1))
-last=${files[${steps}]}
+#!/bin/sh -x
+# Takes all jpeg images in the current directory and combines them into an image of 1146x600px, with each image overlapping on the horizontal axis.
 width=1146
 height=600
+
+# Resize all to output height
+convert *.j{p,pe}g -resize x${height} out.jpeg
+files=(out*.jpeg)
+
+# The number of steps is the total images, less one. This divides the remaining space after placing a full image on the right of the canvas.
+steps=$((${#files[@]}-1))
+last=${files[${steps}]}
 diff=$((${width}-$(identify -ping -format '%w' ${last})))
 stepsize=$((${diff}/${steps}));
- 
-mogrify -resize x${height} *.jp[e?]g
+
 convert -size ${width}x${height} canvas:'#333' $(for i in "${!files[@]}"; do printf -- " -page +%s+0 %s" $(($stepsize * $i)) ${files[$i]}; done) -layers merge +repage test.jpeg
+rm out*.jpeg
