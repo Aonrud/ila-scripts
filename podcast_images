@@ -1,0 +1,11 @@
+#!/usr/bin/bash
+print_usage() { echo "Usage: $(basename $0) IMAGE_FILE"; }
+
+if [ -z $1 ]; then
+	echo "No file specified.";
+	print_usage;
+else
+	convert $1 -resize 700x ${1%%.*}_thumbnail.jpeg
+	convert $1 -resize 430x460^ -gravity Center -extent 430x460 +repage ${1%%.*}_slide.jpeg
+fi
+
