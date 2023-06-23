@@ -1,7 +1,7 @@
 ILA Scripts
 ===
 
-`backup` - Backup the site. Excludes specified contents directories from site archive and copies them to separate backup location.
+`backup` - Backup the site. Configuration determines Docker volumes, databases and local files to backup.
 
 `podcast_images` - Generate additional images from main podcast episode image for homepage slide & embedded thumbnail.
 
