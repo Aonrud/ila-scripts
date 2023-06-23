@@ -1,49 +1,89 @@
-#!/bin/bash
+#!/bin/bash -x
 
-###############################
-# Settings and directories
-###############################
-SITE=leftarchive.ie
+#####################################
+# Get settings from environment file
+#####################################
 
-ROOT=/var/www/leftarchive.ie
-BACKUP_DIR=/mnt/ila_backup/leftarchive.ie
-CONTENTS_DIR=$BACKUP_DIR/site_contents
-SITE_DIR=$BACKUP_DIR/$(date -I)_$SITE
-ROOT=/var/www/leftarchive.ie
+if [ -f "$1" ]; then
+	while read -r line; do export "${line?}"; done < $1
+else
+	echo "USE: ./docker-backup ENV_FILE"
+	exit 1;
+fi
 
-DB=leftarchive
-CONTENTS=( "/workspace/documents" "/workspace/images" "/workspace/submissions" "/workspace/podcast" )
-EXCLUDE=( "${CONTENTS[@]}" "/workspace/.git" )
+if [ -z "${SITE}" ] || [ -z "${WORKDIR}" ] || [ -z "${BACKUPDIR}" ]; then
+	echo "Missing required configuration settings"
+	exit 1;
+fi
 
-###############################
-# Backup the site files (exluding EXCLUDE dirs) and database
-###############################
+DIR="$BACKUPDIR/$SITE/$(date -I)_$SITE"
+mkdir -p "$DIR"
 
-mkdir $SITE_DIR
+#####################################
+# Stop containers
+#####################################
 
-mysqldump --lock-all-tables $DB>$SITE_DIR/$DB.sql
+if [ -n "$STOP" ]; then
+	IFS=":" read -a containers <<< "$STOP"
+	for i in "${containers[@]}"
+	do
+	 docker stop "$i"
+	done
+fi
 
-tar $(for i in "${EXCLUDE[@]}"; do printf -- "--exclude=%s " $ROOT$i; done) -caf $SITE_DIR/$SITE.tar.xz $ROOT
+#####################################
+# Backup volumes
+#####################################
+if [ -n "${VOLUMES}" ]; then
+	IFS=":" read -a volume_arr <<< "$VOLUMES"
+	for i in "${volume_arr[@]}"
+	do
+	 mkdir "$DIR"/"$i"
+	 docker run --rm -v $i:/backup_source -v $DIR:/backup_target busybox tar -czvf /backup_target/$i.tar.gz /backup_source
+	done
+fi
 
-#Add a readme listing excluded dirs and contents.
-README=$SITE_DIR/README.md
-touch $README
-printf "Created: $(date)\n"  >> $README
-printf "Database: $DB.sql\n" >> $README
-printf "Website files: $SITE.tar.xz\n" >> $README
-printf "Excluded folders:\n\n" >> $README
-for i in "${EXCLUDE[@]}"
-do
-        printf "$i\n" >> $README
-done
+#####################################
+# Backup Database
+#####################################
+if [ -n "${DATABASE_CONTAINER}" ] && [ -n "${DATABASE_NAME}" ]; then
+	docker exec -e DB="$DATABASE_NAME" "$DATABASE_CONTAINER" sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" --lock-all-tables $DB' > $DIR/"$(date -I)"$DB.sql && gzip $DIR/"$(date -I)"$DB.sql
+fi
 
-###############################
-# Backup the contents folders
-###############################
+#####################################
+# Archive local and bind mounted files
+#####################################
 
-for i in "${CONTENTS[@]}"
-do
-        cp -au $ROOT$i $CONTENTS_DIR/
-done
+if [ -n "${ARCHIVE}" ]; then 
+	IFS=":" read -a path_arr <<< "$ARCHIVE"
+	for i in "${path_arr[@]}"
+	do
+		out=$(basename $i)
+		if [ ${out:0:1} == "." ]; then out="${out#*.}"; fi
+		tar -czvf "$DIR"/"$out".tar.gz "$WORKDIR$i"
+	done
+fi
 
-echo $(date) > $CONTENTS_DIR/last_updated
+#####################################
+# Sync local files
+#####################################
+
+if [ -n "${SYNC}" ]; then
+	IFS=":" read -a path_arr <<< "$SYNC"
+	for i in "${path_arr[@]}"
+	do
+		cp -au "$WORKDIR/$i" "$BACKUPDIR/$SITE/"
+	done
+fi
+
+#####################################
+# Restart containers
+#####################################
+
+if [ -n "$STOP" ]; then
+	IFS=":" read -a containers <<< "$STOP"
+	for i in "${containers[@]}"
+	do
+	 docker start "$i"
+	done
+fi
