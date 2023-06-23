@@ -6,6 +6,7 @@
 # An example configuration:
 # 
 # SITE=site-name
+# STOP=site-container:site-db
 # WORKDIR=/path/to/workdir
 # BACKUPDIR=/path/to/backups
 # VOLUMES=volume1:volume2
