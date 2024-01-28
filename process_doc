@@ -1,6 +1,11 @@
 #!/usr/bin/bash
 
-print_usage() { echo "Usage: $(basename $0) -t TITLE -y YEAR [-o ORGANISATION] [-a AUTHOR] [-p 'ILA' or 'SNAPSHOTS'] -f PDF_FILE"; }
+print_usage() { echo "Usage: $(basename "$0") -t TITLE -y YEAR [-o ORGANISATION] [-a AUTHOR] [-p 'ILA' or 'SNAPSHOTS'] -f PDF_FILE"; }
+
+# Add character escapes for Latex
+escape_latex() {
+	echo "$1" | sed -E 's/(&|%)/\\\1/g'
+}
 
 while getopts "t:o:a:y:p:f:" opt; do
 	
@@ -48,7 +53,7 @@ if [ -z "$TITLE" ] || [ -z "$YEAR" ] || [ -z "$DOC" ]; then
 	exit 1;
 fi
 
-if [ ! -f $DOC ]; then
+if [ ! -f "$DOC" ]; then
 	echo "Invalid file provided. Check that -f option refers to a valid file.";
 	exit 1;
 elif [[ ! $(file --mime-type -b "$DOC") == "application/pdf" ]]; then
@@ -57,7 +62,7 @@ elif [[ ! $(file --mime-type -b "$DOC") == "application/pdf" ]]; then
 fi
 
 # Validate the project option
-if [ ! -z "$PROJECT" ] && [[ "$PROJECT" != "ILA" ]] && [[ "$PROJECT" != "SNAPSHOTS" ]]; then
+if [ -n "$PROJECT" ] && [[ "$PROJECT" != "ILA" ]] && [[ "$PROJECT" != "SNAPSHOTS" ]]; then
 	echo "Invalid option provided for project (-p). If specified, only 'ILA' or 'SNAPSHOTS' are valid."
 	exit 1;
 fi
@@ -85,14 +90,14 @@ Downloaded from: \\\\
 \href{https://www.leftarchive.ie}{leftarchive.ie} \\\\"
 fi
 
-DATATEX="{\fbc Title:}  $(echo "$TITLE" | sed -e 's/\&/\\&/g' -e 's/\%/\\%/g') \\\\"	#Substitution of & for \& for latex
+DATATEX="{\fbc Title:}  $(escape_latex "$TITLE") \\\\"
 
-if [ ! -z "$ORG" ]; then
+if [ -n "$ORG" ]; then
     DATATEX="${DATATEX}
-        {\fbc Organisation:} $(echo "$ORG" | sed -e 's/\&/\\&/g' -e 's/\%/\\%/g') \\\\"
+        {\fbc Organisation:} $(escape_latex "$ORG") \\\\"
 fi
 
-if [ ! -z "$AUTHOR" ]; then
+if [ -n "$AUTHOR" ]; then
     DATATEX="${DATATEX}
         {\fbc Author:} ${AUTHOR} \\\\"
 fi
@@ -143,8 +148,8 @@ echo "${PAGETEX}" > tex_tmp.tex
 
 xelatex -interaction=batchmode tex_tmp.tex
 
-mv ${DOC} pdf_tmp.pdf
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/default -sOutputFile=${DOC} pdf_tmp.pdf tex_tmp.pdf
+mv "${DOC}" pdf_tmp.pdf
+gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFSETTINGS=/default -sOutputFile="${DOC}" pdf_tmp.pdf tex_tmp.pdf
 
 #Add org as author, if no author specified.
 if [ -z "$AUTHOR" ]; then
@@ -153,10 +158,10 @@ else
     M_AUTH=${AUTHOR}
 fi
 
-exiftool -Title="${TITLE}" -Author="${M_AUTH}" ${DOC}
+exiftool -Title="${TITLE}" -Author="${M_AUTH}" "${DOC}"
 
-gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf ${DOC}
+gs -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -dFirstPage=1 -dLastPage=1 -sOutputFile=page1.pdf "${DOC}"
 convert page1.pdf -filter Lanczos -define filter:blur=.9891028367558475 -distort Resize 2000x "${DOC%%.*}".jpeg
 
 #Cleanup
-rm page1.* pdf_tmp.pdf tex_tmp.* ${DOC}_original
+rm page1.* pdf_tmp.pdf tex_tmp.* "${DOC}"_original
